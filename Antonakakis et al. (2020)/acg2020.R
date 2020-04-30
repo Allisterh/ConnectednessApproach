@@ -237,7 +237,6 @@ for (i in 1:t){
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
@@ -250,7 +249,7 @@ for (i in 1:k) {
       next
     } else {
       nps[,jk] = npso[i,j,]
-      colnames(nps)[jk] = paste0(colnames(Y)[i],"-",colnames(Y)[j])
+      colnames(nps)[jk] = paste0(colnames(Y)[j],"-",colnames(Y)[i])
       jk = jk + 1
     }
   }
@@ -264,7 +263,7 @@ polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", bord
 box()
 
 ### TOTAL DIRECTIONAL CONNECTEDNESS TO OTHERS
-par(mfrow = c(k/2,2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
+par(mfrow = c(ceiling(k/2),2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
 for (i in 1:k){
   plot(date,to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(floor(min(to)),ceiling(max(to))),tck=0.01,yaxs="i")
   grid(NA,NULL,lty=1)
@@ -298,5 +297,8 @@ for (i in 1:ncol(nps)) {
   polygon(c(date,rev(date)),c(c(rep(0,nrow(nps))),rev(nps[,i])),col="grey20", border="grey20")
   box()
 }
+
+### AVERAGE DYNAMIC CONNECTEDNESS TABLE
+print(DCA(ct/100)$ALL)
 
 ### END

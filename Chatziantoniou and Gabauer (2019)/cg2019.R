@@ -231,12 +231,11 @@ for (i in 1:t){
   CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
   colnames(CV)=rownames(CV)=colnames(Y)
   vd = DCA(CV)
-  ct[,,i] = vd$CT
+  ct[,,i] = k/(k-1)*vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
@@ -258,7 +257,7 @@ for (i in 1:k) {
 PCI = array(NA,c(k,k,t))
 for (i in 1:k) {
   for (j in 1:k) {
-    x = matrix(2*(CV[i,j,]+CV[j,i,])/(CV[i,i,]+CV[i,j,]+CV[j,i,]+CV[j,j,]), ncol=1)
+    x = matrix(2*(ct[i,j,]+ct[j,i,])/(ct[i,i,]+ct[i,j,]+ct[j,i,]+ct[j,j,]), ncol=1)
     colnames(x) = paste0(colnames(Y)[i],"-",colnames(Y)[j])
     PCI[i,j,] = x
   }
@@ -266,7 +265,7 @@ for (i in 1:k) {
 
 ### DYNAMIC TOTAL CONNECTEDNESS
 par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-plot(date,total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
+plot(date, total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
 grid(NA,NULL,lty=1)
 polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", border="grey20")
 box()
@@ -276,7 +275,7 @@ par(mfrow = c(ceiling((k-1)*k/4),2), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) +
 for (i in 1:k) {
   for (j in 1:k) {
     if (j<i) {
-      plot(date,PCI[i,j,], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste0(colnames(Y)[i],"-",colnames(Y)[j]),tck=0.02,yaxs="i",ylim=c(0, 1))
+      plot(date, PCI[i,j,], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste0(colnames(Y)[i],"-",colnames(Y)[j]),tck=0.02,yaxs="i",ylim=c(0, 1))
       grid(NA,NULL,lty=1)
       polygon(c(date,rev(date)),c(c(rep(0,dim(PCI)[3])),rev(PCI[i,j,])),col="grey20", border="grey20")
       box()

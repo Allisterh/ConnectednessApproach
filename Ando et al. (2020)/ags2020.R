@@ -108,32 +108,29 @@ t = nrow(Y)
 space = 200 + nlag # 200 days rolling window estimation
 CV = array(NA, c(k, k, (t-space)))
 colnames(CV) = rownames(CV) = colnames(Y)
-for (i in 1:dim(CV)[3]) {
+for (i in 1:(t-space)) {
   qvar = QVAR(Y[i:(space+i-1),], p=nlag, quantile=quantile)
   CV[,,i] = tvp.gfevd(qvar$B, qvar$Q, n.ahead=nfore)$fevd
   if (i%%500==0) {print(i)}
 }
 
-to = matrix(NA, ncol=k, nrow=t)
-from = matrix(NA, ncol=k, nrow=t)
-net = matrix(NA, ncol=k, nrow=t)
-ct = npso = array(NA, c(k, k, t))
-total = matrix(NA, ncol=1, nrow=t)
+to = matrix(NA, ncol=k, nrow=(t-space))
+from = matrix(NA, ncol=k, nrow=(t-space))
+net = matrix(NA, ncol=k, nrow=(t-space))
+ct = npso = array(NA, c(k, k, (t-space)))
+total = matrix(NA, ncol=1, nrow=(t-space))
 colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
-for (i in 1:t){
-  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  colnames(CV)=rownames(CV)=colnames(Y)
-  vd = DCA(CV)
+for (i in 1:(t-space)){
+  vd = DCA(CV[,,i])
   ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
-nps = array(NA,c(t,k/2*(k-1)))
+nps = array(NA,c(t-space,k/2*(k-1)))
 colnames(nps) = 1:ncol(nps)
 jk = 1
 for (i in 1:k) {
@@ -142,7 +139,7 @@ for (i in 1:k) {
       next
     } else {
       nps[,jk] = npso[i,j,]
-      colnames(nps)[jk] = paste0(colnames(Y)[i],"-",colnames(Y)[j])
+      colnames(nps)[jk] = paste0(colnames(Y)[j],"-",colnames(Y)[i])
       jk = jk + 1
     }
   }
@@ -151,7 +148,7 @@ for (i in 1:k) {
 ### DYNAMIC TOTAL CONNECTEDNESS
 date = DATE[-c(1:space)]
 par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-plot(date,total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
+plot(date, total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
 grid(NA,NULL,lty=1)
 polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", border="grey20")
 box()
@@ -159,7 +156,7 @@ box()
 ### TOTAL DIRECTIONAL CONNECTEDNESS TO OTHERS
 par(mfrow = c(k/2,2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
 for (i in 1:k){
-  plot(date,to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(floor(min(to)),ceiling(max(to))),tck=0.01,yaxs="i")
+  plot(date, to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(floor(min(to)),ceiling(max(to))),tck=0.01,yaxs="i")
   grid(NA,NULL,lty=1)
   polygon(c(date,rev(date)),c(c(rep(0,nrow(to))),rev(to[,i])),col="grey20", border="grey20")
   box()
@@ -168,7 +165,7 @@ for (i in 1:k){
 ### TOTAL DIRECTIONAL CONNECTEDNESS FROM OTHERS
 par(mfrow = c(ceiling(k/2),2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
 for (i in 1:k){
-  plot(date,from[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"FROM all others"),ylim=c(floor(min(from)),ceiling(max(from))),tck=0.01,yaxs="i")
+  plot(date, from[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"FROM all others"),ylim=c(floor(min(from)),ceiling(max(from))),tck=0.01,yaxs="i")
   grid(NA,NULL,lty=1)
   polygon(c(date,rev(date)),c(c(rep(0,nrow(from))),rev(from[,i])),col="grey20", border="grey20")
   box()
@@ -177,7 +174,7 @@ for (i in 1:k){
 ### NET TOTAL DIRECTIONAL CONNECTEDNESS
 par(mfrow = c(ceiling(k/2),2), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
 for (i in 1:k){
-  plot(date,net[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste("NET",colnames(Y)[i]),ylim=c(floor(min(net)),ceiling(max(net))),tck=0.01,yaxs="i")
+  plot(date, net[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste("NET",colnames(Y)[i]),ylim=c(floor(min(net)),ceiling(max(net))),tck=0.01,yaxs="i")
   grid(NA,NULL,lty=1)
   polygon(c(date,rev(date)),c(c(rep(0,nrow(net))),rev(net[,i])),col="grey20", border="grey20")
   box()
@@ -186,10 +183,13 @@ for (i in 1:k){
 ### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
 par(mfrow = c(ceiling(ncol(nps)/2),2), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
 for (i in 1:ncol(nps)) {
-  plot(date,nps[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=colnames(nps)[i],tck=0.02,yaxs="i",ylim=c(floor(min(nps)),ceiling(max(nps))))
+  plot(date, nps[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=colnames(nps)[i],tck=0.02,yaxs="i",ylim=c(floor(min(nps)),ceiling(max(nps))))
   grid(NA,NULL,lty=1)
   polygon(c(date,rev(date)),c(c(rep(0,nrow(nps))),rev(nps[,i])),col="grey20", border="grey20")
   box()
 }
+
+### AVERAGE DYNAMIC CONNECTEDNESS TABLE
+print(DCA(ct/100)$ALL)
 
 ### END

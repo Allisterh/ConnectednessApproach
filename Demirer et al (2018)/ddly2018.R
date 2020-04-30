@@ -119,26 +119,23 @@ for (i in 1:dim(CV)[3]) {
   if (i%%100==0) {print(i)}
 }
 
-to = matrix(NA, ncol=k, nrow=t)
-from = matrix(NA, ncol=k, nrow=t)
-net = matrix(NA, ncol=k, nrow=t)
-ct = npso = array(NA, c(k, k, t))
-total = matrix(NA, ncol=1, nrow=t)
+to = matrix(NA, ncol=k, nrow=(t-space))
+from = matrix(NA, ncol=k, nrow=(t-space))
+net = matrix(NA, ncol=k, nrow=(t-space))
+ct = npso = array(NA, c(k, k, (t-space)))
+total = matrix(NA, ncol=1, nrow=(t-space))
 colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
-for (i in 1:t){
-  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  colnames(CV)=rownames(CV)=colnames(Y)
-  vd = DCA(CV)
+for (i in 1:(t-space)){
+  vd = DCA(CV[,,i])
   ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
-nps = array(NA,c(t,k/2*(k-1)))
+nps = array(NA,c(t-space,k/2*(k-1)))
 colnames(nps) = 1:ncol(nps)
 jk = 1
 for (i in 1:k) {
@@ -146,7 +143,7 @@ for (i in 1:k) {
     if (j<=i) {
       next
     } else {
-      nps[,jk] = npso[i,j,]
+      nps[,jk] = npso[j,i,]
       colnames(nps)[jk] = paste0(colnames(Y)[i],"-",colnames(Y)[j])
       jk = jk + 1
     }
@@ -162,7 +159,7 @@ polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", bord
 box()
 
 ### TOTAL DIRECTIONAL CONNECTEDNESS TO OTHERS
-par(mfrow = c(k/2,2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
+par(mfrow = c(ceiling(k/2),2), oma = c(0,1,0,0) + 0.02, mar = c(1,1,1,1) + .02, mgp = c(0, 0.1, 0))
 for (i in 1:k){
   plot(date,to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(floor(min(to)),ceiling(max(to))),tck=0.01,yaxs="i")
   grid(NA,NULL,lty=1)
@@ -196,5 +193,8 @@ for (i in 1:ncol(nps)) {
   polygon(c(date,rev(date)),c(c(rep(0,nrow(nps))),rev(nps[,i])),col="grey20", border="grey20")
   box()
 }
+
+### AVERAGE DYNAMIC CONNECTEDNESS TABLE
+print(DCA(ct/100)$ALL)
 
 ### END

@@ -3,6 +3,7 @@
 ### BETTER TO GIVE THAN TO RECEIVE: PREDICTIVE DIRECTIONAL MEASUREMENT OF VOLATILITY SPILLOVERS
 ### International Journal of Forecasting
 ### replicated by David Gabauer (https://sites.google.com/view/davidgabauer/contact-details)
+library("vars")
 
 gfevd = function(model, n.ahead=10, normalize=TRUE, standardize=TRUE) {
    if (class(model) != "varest") {
@@ -57,7 +58,6 @@ Y = DATA[,-1]
 k = ncol(Y)
 
 ### STATIC CONNECTEDNESS APPROACH
-library("vars")
 nlag = 4 # VAR(4)
 nfore = 10 # 10-step ahead forecast
 var_full = VAR(Y, p=nlag, type="const")
@@ -70,32 +70,29 @@ t = nrow(Y)
 space = 200 + nlag # 200 days rolling window estimation
 CV = array(NA, c(k, k, (t-space)))
 colnames(CV) = rownames(CV) = colnames(Y)
-for (i in 1:dim(CV)[3]) {
+for (i in 1:(t-space)) {
   var = VAR(Y[i:(space+i-1),], p=nlag, type="const")
   CV[,,i] = gfevd(var, n.ahead=nfore)$fevd
   if (i%%500==0) {print(i)}
 }
 
-to = matrix(NA, ncol=k, nrow=t)
-from = matrix(NA, ncol=k, nrow=t)
-net = matrix(NA, ncol=k, nrow=t)
-ct = npso = array(NA, c(k, k, t))
-total = matrix(NA, ncol=1, nrow=t)
+to = matrix(NA, ncol=k, nrow=(t-space))
+from = matrix(NA, ncol=k, nrow=(t-space))
+net = matrix(NA, ncol=k, nrow=(t-space))
+ct = npso = array(NA, c(k, k, (t-space)))
+total = matrix(NA, ncol=1, nrow=(t-space))
 colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
-for (i in 1:t){
-  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  colnames(CV)=rownames(CV)=colnames(Y)
-  vd = DCA(CV)
+for (i in 1:(t-space)){
+  vd = DCA(CV[,,i])
   ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
-nps = array(NA,c(t,k/2*(k-1)))
+nps = array(NA,c(t-space,k/2*(k-1)))
 colnames(nps) = 1:ncol(nps)
 jk = 1
 for (i in 1:k) {
@@ -104,7 +101,7 @@ for (i in 1:k) {
       next
     } else {
       nps[,jk] = npso[i,j,]
-      colnames(nps)[jk] = paste0(colnames(Y)[i],"-",colnames(Y)[j])
+      colnames(nps)[jk] = paste0(colnames(Y)[j],"-",colnames(Y)[i])
       jk = jk + 1
     }
   }
@@ -113,7 +110,7 @@ for (i in 1:k) {
 ### DYNAMIC TOTAL CONNECTEDNESS
 date = DATE[-c(1:space)]
 par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-plot(date,total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
+plot(date, total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
 grid(NA,NULL,lty=1)
 polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", border="grey20")
 box()
@@ -153,5 +150,8 @@ for (i in 1:ncol(nps)) {
   polygon(c(date,rev(date)),c(c(rep(0,nrow(nps))),rev(nps[,i])),col="grey20", border="grey20")
   box()
 }
+
+### AVERAGE DYNAMIC CONNECTEDNESS TABLE
+print(DCA(ct/100)$ALL)
 
 ### END
