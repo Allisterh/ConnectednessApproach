@@ -1,6 +1,6 @@
 
-### ANTONAKAKIS, N., AND GABAUER, D. (2017)
-### REFINED MEASURES OF DYNAMIC CONNECTEDNESS BASED ON TIME-VARYING PARAMETERS VECTOR AUTREGRESSIONS
+### CHATZIANTONIOU, I., AND GABAUER, D. (2019)
+### EMU-RISK SYNCHRONISATION AND FINANCIAL FRAGILITY THROUGH THE PRISM OF DYNAMIC CONNECTEDNESS
 ### by David Gabauer (https://sites.google.com/view/davidgabauer/contact-details)
 
 UninformativePrior = function(gamma, r, nlag, m){
@@ -190,7 +190,7 @@ DCA = function(CV){
   TO = colSums(SOFM-diag(diag(SOFM)))
   FROM = rowSums(SOFM-diag(diag(SOFM)))
   NET = TO-FROM
-  NPSO = t(SOFM)-SOFM
+  NPSO = SOFM-t(SOFM)
   INC = rowSums(NPSO>0)
   ALL = rbind(format(round(cbind(SOFM,FROM),1),nsmall=1),c(format(round(TO,1),nsmall=1),format(round(sum(colSums(SOFM-diag(diag(SOFM)))),1),nsmall=1)),c(format(round(NET,1),nsmall=1),"TCI"),format(round(c(INC,VSI),1),nsmall=1))
   colnames(ALL) = c(rownames(CV),"FROM")
@@ -221,20 +221,23 @@ B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t
 
 ### DYNAMIC CONNECTEDNESS APPROACH
-total = matrix(NA, ncol=1, nrow=t)
 to = matrix(NA, ncol=k, nrow=t)
 from = matrix(NA, ncol=k, nrow=t)
 net = matrix(NA, ncol=k, nrow=t)
-CV = npso = array(NA, c(k, k, t))
-colnames(CV)=rownames(CV)=colnames(Y)
+ct = npso = array(NA, c(k, k, t))
+total = matrix(NA, ncol=1, nrow=t)
+colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
 for (i in 1:t){
-  CV[,,i] = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  vd = DCA(CV[,,i])
+  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
+  colnames(CV)=rownames(CV)=colnames(Y)
+  vd = DCA(CV)
+  ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
-  total[i,] = vd$TCI*k/(k-1)
+  ct[,,i]-t(ct[,,i])
+  total[i,] = vd$TCI
 }
 
 nps = array(NA,c(t,k/2*(k-1)))

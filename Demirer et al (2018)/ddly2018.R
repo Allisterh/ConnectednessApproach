@@ -1,19 +1,24 @@
 
-### ANDO, T., GREENWOOD-NIMMO, M., AND WU, E. (2016)
-### QUANTILE CONNECTEDNESS: MODELLING TAIL BEHAVIOUR IN THE TOPOLOGY OF FINANCIAL NETWORKS
+### DEMIRER, M., DIEBOLD, FX., LIU, L., & YILMAZ, K. (2018)
+### Estimating Global Bank Network Connectedness
+### Journal Of Applied Econometrics
 ### replicated by David Gabauer (https://sites.google.com/view/davidgabauer/contact-details)
 
-QVAR = function(y,p,quantile=0.5) {
+library("glmnet")
+LASSO_RIDGE_VAR = function(y,p, alpha=0) {
   y = as.matrix(y)
   p = p
   res1 = coef1 = NULL
   k = ncol(y)
   for (i in 1:k) {
     yx = embed(y,p+1)
-    rq1 = rq(y[-c(1:p),i]~yx[,-c(1:k)],tau=quantile)
-    coef = coef(rq1)[-1]
+    x = yx[,-c(1:k)]
+    z = y[-c(1:p),i]
+    mod = cv.glmnet(x, z, alpha = alpha, type.measure="mae")
+    pred = predict(mod, s = mod$lambda.min, newx=yx[,-c(1:k)])
+    coef = predict(mod, type = "coefficients", s = mod$lambda.min)[-1]
+    res = z - pred
     coef1 = rbind(coef1,coef) 
-    res = rq1$residuals
     res1 = cbind(res1,res)
   }  
   Q = (t(res1)%*%res1)/nrow(res1)
@@ -78,7 +83,7 @@ DCA = function(CV){
   TO = colSums(SOFM-diag(diag(SOFM)))
   FROM = rowSums(SOFM-diag(diag(SOFM)))
   NET = TO-FROM
-  NPSO = t(SOFM)-SOFM
+  NPSO = SOFM-t(SOFM)
   INC = rowSums(NPSO>0)
   ALL = rbind(format(round(cbind(SOFM,FROM),1),nsmall=1),c(format(round(TO,1),nsmall=1),format(round(sum(colSums(SOFM-diag(diag(SOFM)))),1),nsmall=1)),c(format(round(NET,1),nsmall=1),"TCI"),format(round(c(INC,VSI),1),nsmall=1))
   colnames(ALL) = c(rownames(CV),"FROM")
@@ -92,13 +97,14 @@ DATE = as.Date(as.character(DATA[,1]))
 Y = DATA[,-1]
 k = ncol(Y)
 
+#alpha = 0 # RIDGE VAR
+alpha = 1 # LASSO VAR
+
 ### STATIC CONNECTEDNESS APPROACH
-library("quantreg")
-quantile = 0.5
 nlag = 4 # VAR(4)
 nfore = 10 # 10-step ahead forecast
-qvar_full = QVAR(Y, p=nlag, quantile=quantile)
-CV_full = tvp.gfevd(qvar_full$B, qvar_full$Q, n.ahead=nfore)$fevd
+lasso_ridge_full = LASSO_RIDGE_VAR(Y, p=nlag, alpha=alpha)
+CV_full = tvp.gfevd(lasso_ridge_full$B, lasso_ridge_full$Q, n.ahead=nfore)$fevd
 rownames(CV_full)=colnames(CV_full)=colnames(Y)
 print(DCA(CV_full))
 
@@ -108,26 +114,31 @@ space = 200 + nlag # 200 days rolling window estimation
 CV = array(NA, c(k, k, (t-space)))
 colnames(CV) = rownames(CV) = colnames(Y)
 for (i in 1:dim(CV)[3]) {
-  qvar = QVAR(Y[i:(space+i-1),], p=nlag, quantile=quantile)
-  CV[,,i] = tvp.gfevd(qvar$B, qvar$Q, n.ahead=nfore)$fevd
-  if (i%%500==0) {print(i)}
+  lasso_ridge_var = LASSO_RIDGE_VAR(Y[i:(space+i-1),], p=nlag, alpha=alpha)
+  CV[,,i] = tvp.gfevd(lasso_ridge_var$B, lasso_ridge_var$Q, n.ahead=nfore)$fevd
+  if (i%%100==0) {print(i)}
 }
 
-to = matrix(NA, ncol=k, nrow=(t-space))
-from = matrix(NA, ncol=k, nrow=(t-space))
-net = matrix(NA, ncol=k, nrow=(t-space))
-npso = array(NA, c(k, k, (t-space)))
-total = matrix(NA, ncol=1, nrow=(t-space))
-for (i in 1:dim(CV)[3]){
-  vd = DCA(CV[,,i])
+to = matrix(NA, ncol=k, nrow=t)
+from = matrix(NA, ncol=k, nrow=t)
+net = matrix(NA, ncol=k, nrow=t)
+ct = npso = array(NA, c(k, k, t))
+total = matrix(NA, ncol=1, nrow=t)
+colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
+for (i in 1:t){
+  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
+  colnames(CV)=rownames(CV)=colnames(Y)
+  vd = DCA(CV)
+  ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
+  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
-nps = array(NA,c((t-space),k/2*(k-1)))
+nps = array(NA,c(t,k/2*(k-1)))
 colnames(nps) = 1:ncol(nps)
 jk = 1
 for (i in 1:k) {

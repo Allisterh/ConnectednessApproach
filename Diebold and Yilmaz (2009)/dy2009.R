@@ -1,7 +1,7 @@
 
 ### DIEBOLD, FX., AND YILMAZ, K. (2009)
 ### MEASURING FINANCIAL ASSET RETURN AND VOLATILITY SPILLOVERS, WITH APPLICATION TO GLOBAL EQUITY MARKETS
-### ECONOMIC JOURNAL
+### Economic Journal
 ### by David Gabauer (https://sites.google.com/view/davidgabauer/contact-details)
 
 ofevd = function(ofevd, n.ahead=10) {
@@ -19,7 +19,7 @@ DCA = function(CV){
   TO = colSums(SOFM-diag(diag(SOFM)))
   FROM = rowSums(SOFM-diag(diag(SOFM)))
   NET = TO-FROM
-  NPSO = t(SOFM)-SOFM
+  NPSO = SOFM-t(SOFM)
   INC = rowSums(NPSO>0)
   ALL = rbind(format(round(cbind(SOFM,FROM),1),nsmall=1),c(format(round(TO,1),nsmall=1),format(round(sum(colSums(SOFM-diag(diag(SOFM)))),1),nsmall=1)),c(format(round(NET,1),nsmall=1),"TCI"),format(round(c(INC,VSI),1),nsmall=1))
   colnames(ALL) = c(rownames(CV),"FROM")
@@ -53,21 +53,26 @@ for (i in 1:dim(CV)[3]) {
   if (i%%500==0) {print(i)}
 }
 
-to = matrix(NA, ncol=k, nrow=(t-space))
-from = matrix(NA, ncol=k, nrow=(t-space))
-net = matrix(NA, ncol=k, nrow=(t-space))
-npso = array(NA, c(k, k, (t-space)))
-total = matrix(NA, ncol=1, nrow=(t-space))
-for (i in 1:dim(CV)[3]){
-  vd = DCA(CV[,,i])
+to = matrix(NA, ncol=k, nrow=t)
+from = matrix(NA, ncol=k, nrow=t)
+net = matrix(NA, ncol=k, nrow=t)
+ct = npso = array(NA, c(k, k, t))
+total = matrix(NA, ncol=1, nrow=t)
+colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
+for (i in 1:t){
+  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
+  colnames(CV)=rownames(CV)=colnames(Y)
+  vd = DCA(CV)
+  ct[,,i] = vd$CT
   to[i,] = vd$TO/k
   from[i,] = vd$FROM/k
   net[i,] = vd$NET/k
   npso[,,i] = vd$NPSO/k
+  ct[,,i]-t(ct[,,i])
   total[i,] = vd$TCI
 }
 
-nps = array(NA,c((t-space),k/2*(k-1)))
+nps = array(NA,c(t,k/2*(k-1)))
 colnames(nps) = 1:ncol(nps)
 jk = 1
 for (i in 1:k) {
