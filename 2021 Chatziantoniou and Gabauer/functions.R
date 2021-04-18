@@ -1,8 +1,5 @@
-
-### CHATZIANTONIOU, I., AND GABAUER, D. (2019)
-### EMU-RISK SYNCHRONISATION AND FINANCIAL FRAGILITY THROUGH THE PRISM OF DYNAMIC CONNECTEDNESS
-### by David Gabauer (https://sites.google.com/view/davidgabauer/contact-details)
-
+library("MTS")
+library("MASS")
 UninformativePrior = function(gamma, r, nlag, m){
   A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
   aprior = c(A_prior)
@@ -18,7 +15,24 @@ UninformativePrior = function(gamma, r, nlag, m){
   diag(Vprior)
   return = list(aprior=aprior, Vprior=Vprior)
 }
-TVPVAR = function(Y, l, nlag, beta_0.mean, beta_0.var, Q_0){
+BayesPrior = function(Y, nlag){
+  k = ncol(Y)
+  vars = MTS::VAR(Y, p=nlag, include.mean=TRUE, output=FALSE)
+  varcoef = vars$Phi
+  SIGMA_OLS = vars$secoef
+  Q_0 = vars$Sigma
+  b_prior = 0*varcoef
+  beta_0.var = diag(c(vars$secoef[-(k+1),]))^2
+  return=list(aprior=b_prior,Vprior=beta_0.var,Q_0=Q_0)
+}
+TVPVAR = function(Y, l, nlag, prior){
+  beta_0.mean = prior$aprior
+  beta_0.var = prior$Vprior
+  Q_0 = prior$Q_0
+  if (is.null(Q_0)) {
+    Q_0 = cov(Y)
+  }
+  
   create_RHS_NI = function(templag, r, nlag, t){
     K = nlag*(r^2)
     x_t = matrix(0, (t-nlag)*r, K)
@@ -131,33 +145,33 @@ TVPVAR = function(Y, l, nlag, beta_0.mean, beta_0.var, Q_0){
   
   return = list(beta_t=beta_t[1:ncol(Y),,], Q_t=Q_t)
 }
-tvp.Phi = function (x, nstep = 10, ...) {
-  nstep = abs(as.integer(nstep))
-  K=nrow(x)
-  p=floor(ncol(x)/K)
-  A = array(0, c(K,K,nstep))
-  for (i in 1:p){
-    A[,,i]=x[,((i-1)*K+1):(i*K)]
-  }
-  
-  Phi = array(0, dim = c(K, K, nstep + 1))
-  Phi[, , 1] = diag(K)
-  Phi[, , 2] = Phi[, , 1] %*% A[, , 1]
-  if (nstep > 1) {
-    for (i in 3:(nstep + 1)) {
-      tmp1 = Phi[, , 1] %*% A[, , i - 1]
-      tmp2 = matrix(0, nrow = K, ncol = K)
-      idx = (i - 2):1
-      for (j in 1:(i - 2)) {
-        tmp2 = tmp2 + Phi[, , j + 1] %*% A[, , idx[j]]
-      }
-      Phi[, , i] = tmp1 + tmp2
+GFEVD = function(Phi, Sigma, n.ahead=10,normalize=TRUE,standardize=TRUE) {
+  tvp.Phi = function (x, nstep = 10, ...) {
+    nstep = abs(as.integer(nstep))
+    K=nrow(x)
+    p=floor(ncol(x)/K)
+    A = array(0, c(K,K,nstep))
+    for (i in 1:p){
+      A[,,i]=x[,((i-1)*K+1):(i*K)]
     }
+    
+    Phi = array(0, dim = c(K, K, nstep + 1))
+    Phi[, , 1] = diag(K)
+    Phi[, , 2] = Phi[, , 1] %*% A[, , 1]
+    if (nstep > 1) {
+      for (i in 3:(nstep + 1)) {
+        tmp1 = Phi[, , 1] %*% A[, , i - 1]
+        tmp2 = matrix(0, nrow = K, ncol = K)
+        idx = (i - 2):1
+        for (j in 1:(i - 2)) {
+          tmp2 = tmp2 + Phi[, , j + 1] %*% A[, , idx[j]]
+        }
+        Phi[, , i] = tmp1 + tmp2
+      }
+    }
+    return(Phi)
   }
-  return(Phi)
-}
-tvp.gfevd = function(model, Sigma, n.ahead=10,normalize=TRUE,standardize=TRUE) {
-  A = tvp.Phi(model, (n.ahead-1))
+  A = tvp.Phi(Phi, (n.ahead-1))
   Sigma = Sigma
   gi = array(0, dim(A))
   sigmas = sqrt(diag(Sigma))
@@ -181,106 +195,32 @@ tvp.gfevd = function(model, Sigma, n.ahead=10,normalize=TRUE,standardize=TRUE) {
   } else {
     fevd=(fevd)
   }
-  return = list(fevd=fevd, girf=gi, nfevd=nfevd)
+  return = list(GFEVD=fevd, GIRF=gi)
 }
-DCA = function(CV){
+DCA = function(CV, digit=2){
   k = dim(CV)[1]
-  SOFM = apply(CV,1:2,mean)*100 # spillover from others to one specific
-  VSI = round(mean(100-diag(SOFM)),2)
-  TO = colSums(SOFM-diag(diag(SOFM)))
-  FROM = rowSums(SOFM-diag(diag(SOFM)))
+  CT = apply(CV,1:2,mean)*100 # spillover from others to one specific
+  OWN = diag(diag(CT))
+  TO = colSums(CT-OWN)
+  FROM = rowSums(CT-OWN)
   NET = TO-FROM
-  NPSO = SOFM-t(SOFM)
-  INC = rowSums(NPSO>0)
-  ALL = rbind(format(round(cbind(SOFM,FROM),1),nsmall=1),c(format(round(TO,1),nsmall=1),format(round(sum(colSums(SOFM-diag(diag(SOFM)))),1),nsmall=1)),c(format(round(NET,1),nsmall=1),"TCI"),format(round(c(INC,VSI),1),nsmall=1))
-  colnames(ALL) = c(rownames(CV),"FROM")
-  rownames(ALL) = c(rownames(CV),"Contribution TO others","NET directional connectedness","NPDC transmitter")
-  return = list(CT=SOFM,TCI=VSI,TO=TO,FROM=FROM,NET=NET,NPSO=NPSO,NPDC=INC,ALL=ALL)
-}
-
-path = file.path(file.choose()) # select dy2012.csv
-DATA = read.csv(path)
-date = as.Date(as.character(DATA[,1]))
-Y = DATA[,-1]
-k = ncol(Y)
-
-### TVP-VAR
-nlag = 4 # VAR(4)
-nfore = 10 # 10-step ahead forecast
-m = nlag*(k^2)
-t = nrow(Y)
-l_1 = 0.99
-l_2 = 0.99
-
-prior = UninformativePrior(0.1, k, nlag, m)
-beta_0.mean = prior$aprior
-beta_0.var = prior$Vprior
-
-tvpvar = TVPVAR(Y, l=c(l_1, l_2), nlag, beta_0.mean, beta_0.var, cov(Y))
-B_t = tvpvar$beta_t
-Q_t = tvpvar$Q_t
-
-### DYNAMIC CONNECTEDNESS APPROACH
-to = matrix(NA, ncol=k, nrow=t)
-from = matrix(NA, ncol=k, nrow=t)
-net = matrix(NA, ncol=k, nrow=t)
-ct = npso = array(NA, c(k, k, t))
-total = matrix(NA, ncol=1, nrow=t)
-colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
-for (i in 1:t){
-  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  colnames(CV)=rownames(CV)=colnames(Y)
-  vd = DCA(CV)
-  ct[,,i] = k/(k-1)*vd$CT
-  to[i,] = vd$TO/k
-  from[i,] = vd$FROM/k
-  net[i,] = vd$NET/k
-  npso[,,i] = vd$NPSO/k
-  total[i,] = vd$TCI
-}
-
-nps = array(NA,c(t,k/2*(k-1)))
-colnames(nps) = 1:ncol(nps)
-jk = 1
-for (i in 1:k) {
-  for (j in 1:k) {
-    if (j<=i) {
-      next
-    } else {
-      nps[,jk] = npso[i,j,]
-      colnames(nps)[jk] = paste0(colnames(Y)[i],"-",colnames(Y)[j])
-      jk = jk + 1
+  TCI = mean(TO)
+  NPSO = CT-t(CT)
+  NPDC = rowSums(NPSO>0)
+  INFLUENCE = abs(NPSO/t(t(CT)+CT))
+  table = format(round(cbind(CT,FROM),digit),nsmall=digit)
+  to = c(format(round(c(TO,sum(TO)),digit),nsmall=digit))
+  net = c(format(round(c(NET, TCI),digit),nsmall=digit))
+  npdc = c(format(round(NPDC,digit),nsmall=digit), "")
+  inc = c(format(round(colSums(CT), digit),nsmall=digit), "TCI")
+  TABLE = rbind(table,to,inc,net,npdc)
+  colnames(TABLE) = c(rownames(CV),"FROM others")
+  rownames(TABLE) = c(rownames(CV),"TO others","Inc. own","NET","NPDC")
+  PCI = matrix(NA, k, k)
+  for (i in 1:k) {
+    for (j in 1:k) {
+      PCI[i,j] = 2*(CT[i,j]+CT[j,i])/(CT[i,i]+CT[i,j]+CT[j,i]+CT[j,j])
     }
   }
+  return = list(CT=CT,TCI=TCI,TCI_corrected=TCI*k/(k-1),PCI=PCI,TO=TO,FROM=FROM,NET=NET,NPSO=NPSO,NPDC=NPDC,INFLUENCE=INFLUENCE,TABLE=TABLE)
 }
-
-PCI = array(NA,c(k,k,t))
-for (i in 1:k) {
-  for (j in 1:k) {
-    x = matrix(2*(ct[i,j,]+ct[j,i,])/(ct[i,i,]+ct[i,j,]+ct[j,i,]+ct[j,j,]), ncol=1)
-    colnames(x) = paste0(colnames(Y)[i],"-",colnames(Y)[j])
-    PCI[i,j,] = x
-  }
-}
-
-### DYNAMIC TOTAL CONNECTEDNESS
-par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-plot(date, total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
-grid(NA,NULL,lty=1)
-polygon(c(date,rev(date)),c(c(rep(0,nrow(total))),rev(total)),col="grey20", border="grey20")
-box()
-
-### DYNAMIC PAIRWISE CONNECTEDNESS INDEX
-par(mfrow = c(ceiling((k-1)*k/4),2), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-for (i in 1:k) {
-  for (j in 1:k) {
-    if (j<i) {
-      plot(date, PCI[i,j,], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste0(colnames(Y)[i],"-",colnames(Y)[j]),tck=0.02,yaxs="i",ylim=c(0, 1))
-      grid(NA,NULL,lty=1)
-      polygon(c(date,rev(date)),c(c(rep(0,dim(PCI)[3])),rev(PCI[i,j,])),col="grey20", border="grey20")
-      box()
-    }
-  }
-}
-
-### END
