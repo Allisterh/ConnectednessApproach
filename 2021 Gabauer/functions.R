@@ -1,20 +1,5 @@
 library("MTS")
 library("MASS")
-UninformativePrior = function(gamma, r, nlag, m){
-  A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
-  aprior = c(A_prior)
-  V_i = matrix(0, nrow=(m/r), ncol=r)
-  for (i in 1:r){
-    for (j in 1:(m/r)) {
-      V_i[j,i] = gamma/(ceiling(j/r)^2)
-    }
-  }
-  # Now V (MINNESOTA VARIANCE) is a diagonal matrix with diagonal elements the V_i'  
-  V_i_T = t(V_i)
-  Vprior = diag(c(V_i_T))
-  diag(Vprior)
-  return = list(aprior=aprior, Vprior=Vprior)
-}
 BayesPrior = function(Y, nlag){
   k = ncol(Y)
   vars = MTS::VAR(Y, p=nlag, include.mean=TRUE, output=FALSE)

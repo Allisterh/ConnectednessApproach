@@ -1,5 +1,5 @@
 library("MASS")
-UninformativePrior = function(gamma, r, nlag){
+MinnesotaPrior = function(gamma, r, nlag){
   m = nlag*(r^2)
   A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
   aprior = c(A_prior)

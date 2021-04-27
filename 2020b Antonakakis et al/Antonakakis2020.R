@@ -137,7 +137,7 @@ colnames(Y) = NAMES
 ### TVP-VAR Estimation
 nlag  = 1
 nfore = 5
-prior = UninformativePrior(0.1, k, nlag)
+prior = MinnesotaPrior(0.1, k, nlag)
 tvp_var = TVPVAR(Y, l=c(0.99,0.99), nlag, prior)
 B_t = tvp_var$beta_t
 Q_t = tvp_var$Q_t

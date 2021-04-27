@@ -1,6 +1,6 @@
 library("MTS")
 library("MASS")
-UninformativePrior = function(gamma, r, nlag, m){
+MinnesotaPrior = function(gamma, r, nlag, m){
   A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
   aprior = c(A_prior)
   V_i = matrix(0, nrow=(m/r), ncol=r)

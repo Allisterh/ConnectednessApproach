@@ -201,7 +201,7 @@ LW20 = function(B_t, Q_t, nfore, NAMES) {
   }
   return = list(TABLE=DCA(CT_lw20/100)$TABLE, CT=CT_lw20, TOTAL=TOTAL_lw20, TO=TO_lw20, FROM=FROM_lw20, NET=NET_lw20, NPSO=NPSO_lw20)
 }
-UninformativePrior = function(gamma, r, nlag){
+MinnesotaPrior = function(gamma, r, nlag){
   m = nlag*(r^2)
   A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
   aprior = c(A_prior)

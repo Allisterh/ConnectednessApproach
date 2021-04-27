@@ -18,7 +18,7 @@ nlag = 4 # VAR(4)
 nfore = 10 # 10-step ahead forecast
 t = nrow(Y)
 
-prior = UninformativePrior(0.1, k, nlag)
+prior = MinnesotaPrior(0.1, k, nlag)
 tvpvar = TVPVAR(Y, l=c(0.99, 0.99), nlag, prior)
 B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t

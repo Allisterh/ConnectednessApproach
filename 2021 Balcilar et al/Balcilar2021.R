@@ -18,7 +18,7 @@ NAMES = colnames(Y)
 ### DYNAMIC CONNECTEDNESS APPROACH
 p = 1  # lag length
 H = 20 # forecast horizon
-prior = UninformativePrior(0.1, k, p)
+prior = MinnesotaPrior(0.1, k, p)
 tvpvar = TVPVAR(Y, l=c(0.99, 0.99), p, prior)
 B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t

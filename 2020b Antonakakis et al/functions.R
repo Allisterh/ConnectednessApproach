@@ -185,7 +185,7 @@ BestGARCH = function(distr=c("norm","snorm","std","sstd","ged","sged"), models=c
   }
   return=list(GARCH_IC=GARCH_IC, spec_list=spec_list)
 }
-UninformativePrior = function(gamma, r, nlag){
+MinnesotaPrior = function(gamma, r, nlag){
   m = nlag*(r^2)
   A_prior = cbind(0*diag(r), matrix(0, ncol=(nlag-1)*r, nrow=r))
   aprior = c(A_prior)

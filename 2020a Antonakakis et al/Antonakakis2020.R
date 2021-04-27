@@ -9,54 +9,44 @@ options(mc.cores=detectCores())
 source("functions.R")
 
 DATA = read.xlsx('./dy2012.xlsx')
-date = as.Date(as.character(DATA[,1]))
+DATE = as.Date(as.character(DATA[,1]))
 Y = DATA[,-1]
 k = ncol(Y)
+NAMES = colnames(Y)
 
 ### TVP-VAR
 nlag = 4 # VAR(4)
 nfore = 10 # 10-step ahead forecast
-prior = UninformativePrior(0.1, k, nlag)
+prior = MinnesotaPrior(0.1, k, nlag)
 tvpvar = TVPVAR(Y, l=c(0.99, 0.99), nlag, prior)
 B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t
 
 ### DYNAMIC CONNECTEDNESS APPROACH
-t = nrow(Y)
+t = dim(Q_t)[3]
 to = matrix(NA, ncol=k, nrow=t)
 from = matrix(NA, ncol=k, nrow=t)
 net = matrix(NA, ncol=k, nrow=t)
-ct = npso = array(NA, c(k, k, t))
+gfevd = npso = array(NA, c(k, k, t))
 total = matrix(NA, ncol=1, nrow=t)
-colnames(npso)=rownames(npso)=colnames(ct)=rownames(ct)=colnames(Y)
+colnames(gfevd)=rownames(gfevd)=NAMES
 for (i in 1:t){
-  CV = tvp.gfevd(B_t[,,i], Q_t[,,i], n.ahead=nfore)$fevd
-  colnames(CV)=rownames(CV)=colnames(Y)
-  vd = DCA(CV)
-  ct[,,i] = vd$CT
-  to[i,] = vd$TO
-  from[i,] = vd$FROM
-  net[i,] = vd$NET
-  npso[,,i] = vd$NPSO
-  total[i,] = vd$TCI
-  if (i%%100==0) print(paste0(round(100*i/t0,2),"%"))
+  gfevd[,,i] = GFEVD(B_t[,,i], Q_t[,,i], n.ahead=nfore)$GFEVD
+  dca = DCA(gfevd[,,i])
+  ct[,,i] = dca$CT
+  to[i,] = dca$TO
+  from[i,] = dca$FROM
+  net[i,] = dca$NET
+  npso[,,i] = dca$NPSO
+  total[i,] = dca$TCI
+  if (i%%100==0) print(paste0(round(100*i/t,2),"%"))
 }
 
-nps = array(NA,c(t,k/2*(k-1)))
-colnames(nps) = 1:ncol(nps)
-jk = 1
-for (i in 1:k) {
-  for (j in 1:k) {
-    if (j<=i) {
-      next
-    } else {
-      nps[,jk] = npso[i,j,]
-      colnames(nps)[jk] = paste0(colnames(Y)[j],"-",colnames(Y)[i])
-      jk = jk + 1
-    }
-  }
+if ((length(DATE)-t)>0) {
+  date = DATE[-c(length(DATE)-t)]
+} else {
+  date = DATE
 }
-
 ### DYNAMIC TOTAL CONNECTEDNESS
 par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
 plot(date,total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
@@ -92,15 +82,22 @@ for (i in 1:k){
 }
 
 ### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
-par(mfrow = c(ceiling(ncol(nps)/2),2), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
-for (i in 1:ncol(nps)) {
-  plot(date,nps[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=colnames(nps)[i],tck=0.02,yaxs="i",ylim=c(floor(min(nps)),ceiling(max(nps))))
-  grid(NA,NULL,lty=1)
-  polygon(c(date,rev(date)),c(c(rep(0,nrow(nps))),rev(nps[,i])),col="grey20", border="grey20")
-  box()
+### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
+kk = k*(k-1)/2
+lk = ceiling(sqrt(2))
+par(mfcol=c(ceiling(kk/lk),lk), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
+for (i in 1:k) {
+  for (j in 1:k) {
+    if (i<j) {
+      plot(date,npso[j,i,], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste0(NAMES[i],"-",NAMES[j]),tck=-0.02,yaxs="i",ylim=c(floor(min(npso)),ceiling(max(npso))))
+      grid(NA,NULL)
+      polygon(c(date,rev(date)),c(c(rep(0,t)),rev(npso[j,i,])),col="grey20", border="grey20")
+      box()
+    }
+  }
 }
 
 ### AVERAGE DYNAMIC CONNECTEDNESS TABLE
-print(DCA(ct/100)$ALL)
+print(DCA(gfevd)$TABLE)
 
 ### END
