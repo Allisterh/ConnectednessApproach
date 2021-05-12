@@ -266,8 +266,8 @@ TVPVAR = function(Y, l, nlag, prior){
   Q_t = array(0, c(r,r,t))
   
   # Decay and forgetting factors
-  l_2 = l[1]
-  l_4 = l[2]
+  l_2 = l[2]
+  l_4 = l[1]
   
   # Define lags of the factors to be used in the state (VAR) equation         
   yy = FPC[(nlag+1):t,]      

@@ -82,7 +82,6 @@ for (i in 1:k){
 }
 
 ### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
-### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
 kk = k*(k-1)/2
 lk = ceiling(sqrt(2))
 par(mfcol=c(ceiling(kk/lk),lk), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))

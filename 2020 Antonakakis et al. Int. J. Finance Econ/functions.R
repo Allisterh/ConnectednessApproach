@@ -211,7 +211,7 @@ BayesPrior = function(Y, nlag){
   beta_0.var = diag(c(vars$secoef[-(k+1),]))^2
   return=list(aprior=b_prior,Vprior=beta_0.var,Q_0=Q_0)
 }
-TVPVAR = function(Y, l, nlag, prior, demean=TRUE){
+TVPVAR = function(Y, l, nlag, prior){
   beta_0.mean = prior$aprior
   beta_0.var = prior$Vprior
   Q_0 = prior$Q_0
@@ -233,7 +233,7 @@ TVPVAR = function(Y, l, nlag, prior, demean=TRUE){
     }
     return=list(x_t=x_t, K=K)
   }
-  Y = scale(Y,demean,FALSE)
+  Y = scale(Y,TRUE,FALSE)
   y_true = 0
   FPC = Y
   YX = cbind(Y,Y)
@@ -260,8 +260,8 @@ TVPVAR = function(Y, l, nlag, prior, demean=TRUE){
   Q_t = array(0, c(r,r,t))
   
   # Decay and forgetting factors
-  l_2 = l[1]
-  l_4 = l[2]
+  l_2 = l[2]
+  l_4 = l[1]
   
   # Define lags of the factors to be used in the state (VAR) equation         
   yy = FPC[(nlag+1):t,]      
