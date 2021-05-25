@@ -49,7 +49,6 @@ net = to = from = matrix(NA, ncol=k, nrow=t)
 colnames(gfevd)=rownames(gfevd)=colnames(influence)=rownames(influence)=colnames(pci)=rownames(pci)=NAMES
 for (i in 1:t){
   gfevd[,,i] = GFEVD(B_t[,,i], Q_t[,,i], n.ahead=nfore)$GFEVD
-  CV = gfevd[,,i]
   dca = DCA(gfevd[,,i])
   ct[,,i] = dca$CT
   pci[,,i] = dca$PCI

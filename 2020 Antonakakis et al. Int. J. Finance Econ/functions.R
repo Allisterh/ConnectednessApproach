@@ -201,16 +201,6 @@ MinnesotaPrior = function(gamma, r, nlag){
   diag(Vprior)
   return = list(aprior=aprior, Vprior=Vprior)
 }
-BayesPrior = function(Y, nlag){
-  k = ncol(Y)
-  vars = VAR(Y, p=nlag, include.mean=TRUE, output=FALSE)
-  varcoef = vars$Phi
-  SIGMA_OLS = vars$secoef
-  Q_0 = vars$Sigma
-  b_prior = 0*varcoef
-  beta_0.var = diag(c(vars$secoef[-(k+1),]))^2
-  return=list(aprior=b_prior,Vprior=beta_0.var,Q_0=Q_0)
-}
 TVPVAR = function(Y, l, nlag, prior){
   beta_0.mean = prior$aprior
   beta_0.var = prior$Vprior

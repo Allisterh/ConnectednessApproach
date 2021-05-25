@@ -18,7 +18,7 @@ nlag = 4 # VAR(4)
 nfore = 10 # 10-step ahead forecast
 t = nrow(Y)
 
-prior = MinnesotaPrior(0.1, k, nlag)
+prior = BayesPrior(Y[1:200,], nlag)
 tvpvar = TVPVAR(Y, l=c(0.99, 0.99), nlag, prior)
 B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t
@@ -28,7 +28,7 @@ total = total_corr = matrix(NA, ncol=1, nrow=t)
 gfevd = ct = npso = pci = array(NA, c(k, k, t))
 net = to = from = matrix(NA, ncol=k, nrow=t)
 colnames(gfevd)=rownames(gfevd)=colnames(ct)=rownames(ct)=colnames(Y)
-for (i in 1:t){
+for (i in 1:t) {
   gfevd[,,i] = GFEVD(B_t[,,i], Q_t[,,i], n.ahead=nfore)$GFEVD
   CV = gfevd[,,i]
   dca = DCA(gfevd[,,i])
@@ -41,7 +41,7 @@ for (i in 1:t){
   pci[,,i] = dca$PCI
   total[i,] = dca$TCI
   total_corr[i,] = dca$TCI_corrected
-  if (i%%100==0) print(paste0(round(100*i/t0,2),"%"))
+  if (i%%100==0) print(paste0(round(100*i/t,2),"%"))
 }
 
 ### DYNAMIC TOTAL CONNECTEDNESS

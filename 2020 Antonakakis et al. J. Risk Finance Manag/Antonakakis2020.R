@@ -33,7 +33,6 @@ colnames(gfevd)=rownames(gfevd)=NAMES
 for (i in 1:t){
   gfevd[,,i] = GFEVD(B_t[,,i], Q_t[,,i], n.ahead=nfore)$GFEVD
   dca = DCA(gfevd[,,i])
-  ct[,,i] = dca$CT
   to[i,] = dca$TO
   from[i,] = dca$FROM
   net[i,] = dca$NET
@@ -47,6 +46,7 @@ if ((length(DATE)-t)>0) {
 } else {
   date = DATE
 }
+
 ### DYNAMIC TOTAL CONNECTEDNESS
 par(mfrow = c(1,1), oma = c(0,1,0,0) + 0.05, mar = c(1,1,1,1) + .05, mgp = c(0, 0.1, 0))
 plot(date,total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=0.01)
