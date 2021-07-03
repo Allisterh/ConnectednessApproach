@@ -4,6 +4,7 @@
 ### BALCILAR, M., GABAUER, D., & ZAGHUM, U. (2021)
 ### RESOURCES POLICY
 ### replicated by David Gabauer
+
 library("openxlsx")
 library("parallel")
 options(mc.cores=detectCores())
@@ -18,7 +19,7 @@ NAMES = colnames(Y)
 ### DYNAMIC CONNECTEDNESS APPROACH
 p = 1  # lag length
 H = 20 # forecast horizon
-prior = MinnesotaPrior(0.1, k, p)
+prior = UninformativePrior(0.1, k, p)
 tvpvar = TVPVAR(Y, l=c(0.99, 0.99), p, prior)
 B_t = tvpvar$beta_t
 Q_t = tvpvar$Q_t
@@ -41,9 +42,10 @@ net_lw20 = lw20$NET
 npso_lw20 = lw20$NPSO
 
 ### DYNAMIC TOTAL CONNECTEDNESS
+t = length(DATE)
 date = DATE
 par(mfcol=c(1,1), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
-plot(date, total_lw20, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(c(total_dy12,total_lw20))),ceiling(max(c(total_dy12,total_lw20)))),yaxs="i",xlab="",tck=-0.02)
+plot(date, total_lw20, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(0,ceiling(max(c(total_dy12,total_lw20)))),yaxs="i",xlab="",tck=-0.02)
 grid(NA,NULL)
 polygon(c(date,rev(date)),c(c(rep(0,t)),rev(total_lw20)),col="grey20", border="grey20")
 lines(date, total_dy12, col="red")
