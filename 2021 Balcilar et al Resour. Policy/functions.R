@@ -25,10 +25,6 @@ Moments = function(data){
     bt2 = WeightedPortTest::Weighted.Box.test(data[,i], type="Ljung-Box", lag=20, sqrd.res=T)
     moments[13,i] = bt2$statistic
     moments[14,i] = bt2$p.value
-    #bt3 = WeightedPortTest::Weighted.LM.test(data[,i], h.t=c(rep(var(data[,i]),nrow(data))), type="partial", lag=20)
-    #bt3 = FinTS::ArchTest(data[,i], lag=20)
-    #moments[13,i] = bt3$statistic
-    #moments[14,i] = bt3$p.value
   }
   
   cc=c(4,6,8,10,12,14)
