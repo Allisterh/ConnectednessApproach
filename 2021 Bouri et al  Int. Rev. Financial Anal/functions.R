@@ -19,16 +19,11 @@ SummaryStatistics = function(data){
     moments[9,i] = ers@teststat
     moments[10,i]= ers@testreg$coefficients[1,4]
     bt = WeightedPortTest::Weighted.Box.test(data[,i], type="Ljung-Box", lag=20)
-    bt = Box.test(data[,i],  type=c("Ljung-Box"), lag=20)
     moments[11,i] = bt$statistic
     moments[12,i] = bt$p.value
     bt2 = WeightedPortTest::Weighted.Box.test(data[,i], type="Ljung-Box", lag=20, sqrd.res=T)
     moments[13,i] = bt2$statistic
     moments[14,i] = bt2$p.value
-    #bt3 = WeightedPortTest::Weighted.LM.test(data[,i], h.t=c(rep(var(data[,i]),nrow(data))), type="partial", lag=20)
-    #bt3 = FinTS::ArchTest(data[,i], lag=20)
-    #moments[13,i] = bt3$statistic
-    #moments[14,i] = bt3$p.value
   }
   
   cc=c(4,6,8,10,12,14)

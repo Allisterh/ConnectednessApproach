@@ -51,7 +51,7 @@ for (i in 1:k) {
 }
 # TABLE 1: Summary Statistics
 print(SummaryStatistics(Y))
-
+print(cor(Y))
 
 ### DYNAMIC CONNECTEDNESS APPROACH
 nlag = 1
