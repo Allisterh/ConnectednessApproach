@@ -297,6 +297,7 @@ LW20 = function(B_t, Q_t, nfore, NAMES) {
   colnames(TO_lw20) = colnames(FROM_lw20) = colnames(NET_lw20) = NAMES
   colnames(TOTAL_lw20) = "TCI"
   for (ij in 1:t) {
+    print(ij)
     Phi = B_t[,,ij]         # the VAR coefficient matrices 
     A = tvp.Phi(Phi, nfore) # the VMA coefficient matrices
     sigma_eps = Q_t[,,ij]   # the shock covariance matrix
@@ -356,7 +357,7 @@ LW20 = function(B_t, Q_t, nfore, NAMES) {
     S_jnt_numerator_h = array(0,dim=c(k,nfore))
     for (i in 1:k){
       for (h in 1:nfore){
-        S_jnt_numerator_h[i,h] = I_K[i,]%*%A[,,h]%*%sigma_eps%*%M[,,i]%*%(solve(t(M[,,i])%*%sigma_eps%*%M[,,i]))%*%t(M[,,i])%*%sigma_eps%*%t(A[,,h])%*%I_K[,i]     #calculate the numerator of S_jnt at each h
+        S_jnt_numerator_h[i,h] = I_K[i,]%*%A[,,h]%*%sigma_eps%*%M[,,i]%*%(MASS::ginv(t(M[,,i])%*%sigma_eps%*%M[,,i]))%*%t(M[,,i])%*%sigma_eps%*%t(A[,,h])%*%I_K[,i]     #calculate the numerator of S_jnt at each h
       }
     }
     
