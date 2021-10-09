@@ -88,10 +88,9 @@ for (i in 1:periods) {
                             distr=c("norm","snorm","std","sstd","ged","sged"), 
                             models=c("sGARCH","iGARCH","eGARCH","gjrGARCH","AVGARCH","TGARCH"))
       GARCH_selection = which(bestgarch$GARCH_IC==min(bestgarch$GARCH_IC),arr.ind=TRUE)
-      print(paste(colnames(bestgarch$GARCH_IC)[GARCH_selection[2]], rownames(bestgarch$GARCH_IC)[GARCH_selection[1]]))
       print(bestgarch$GARCH_IC)
-      ugarch.spec = bestgarch[[2]][[GARCH_selection[1]]][[GARCH_selection[2]]]
-      ugarch.fit = ugarchfit(ugarch.spec,data=data[,j])
+      ugarch.spec = bestgarch[[2]][[GARCH_selection[2]]][[GARCH_selection[1]]]
+      ugarch.fit = ugarchfit(ugarch.spec,data=Y[,j], solver="hybrid")
       evaluation_matrix[,j] = rbind(ValueAtRisk(ugarch.fit,ugarch.spec,prob=prob, conf.level=conf.level)$statistic,
                                     SignBias_WARCH(ugarch.fit,lag=lag)$statistic)
       spec = c(spec,ugarch.spec)

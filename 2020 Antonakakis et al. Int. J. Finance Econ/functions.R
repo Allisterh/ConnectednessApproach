@@ -160,26 +160,18 @@ BestGARCH = function(distr=c("norm","snorm","std","sstd","ged","sged"), models=c
     for (i in 1:length(distr)) {
       print(paste0("--",distr[i]))
       if (models[j] %in% c("AVGARCH","TGARCH","APARCH","NAGARCH","NGARCH","ALLGARCH")) {
-        #if (models[j]=="AVGARCH") {
-        #  fixed.pars=list(gamma1=0,gamma2=0,delta=1)
-        #} else if (models[j]=="TGARCH") {
-        #  fixed.pars=list(delta=1)
-        #} else {
-        #  fixed.pars=list()
-        #}
         ugarch.spec = ugarchspec(mean.model=list(armaOrder=c(ar,ma)),
                                  variance.model=list(model="fGARCH", submodel=models[j], garchOrder=c(1,1), variance.targeting=FALSE), 
                                  distribution.model=distr[i])
-                                 #fixed.pars=fixed.pars)
       } else {
         ugarch.spec = ugarchspec(mean.model=list(armaOrder=c(ar,ma)),
                                  variance.model=list(model=models[j], garchOrder=c(1,1), variance.targeting=FALSE),
                                  distribution.model=distr[i])
       }
-      ugarch.fit = ugarchfit(ugarch.spec, data, solver="hybrid", solver.list=list(outer.iter=10, inner.iter=1000))
+      ugarch.fit = ugarchfit(ugarch.spec, data, solver="hybrid", solver.list=list(outer.iter=10, inner.iter=1000, eval.se=FALSE, tol=1e-12))
       if (ugarch.fit@fit$convergence==0) {
         GARCH_IC[i,j] = InformationCriterion(ugarch.fit, ugarch.spec, prob=prob, conf.level=conf.level, lag=lag)
-        spec_list[[i]][[j]] = ugarch.spec
+        spec_list[[j]][[i]] = ugarch.spec
       }
     }
   }
