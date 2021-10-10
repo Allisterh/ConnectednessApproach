@@ -1,4 +1,3 @@
-library("MASS")
 VAR = function (x, p=1, include.mean=T, fixed=NULL) {
   if (!is.matrix(x)) 
     x = as.matrix(x)
