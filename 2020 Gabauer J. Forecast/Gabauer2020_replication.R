@@ -4,6 +4,7 @@
 ### JOURNAL OF FORECASTING
 ### replicated by David Gabauer
 library("rmgarch")
+library("openxlsx")
 source("functions.R")
 
 DATA = read.xlsx('./gabauer2020.xlsx', detectDates=TRUE)
@@ -23,11 +24,11 @@ for (i in 1:k) {
 box()
 legend("topleft", NAMES, fill=1:k)
 
-Y = na.omit(100*diff(log(as.matrix(Y))))
+Y = na.omit(100*diff(log(as.matrix(RAW))))
 date = DATE[-1]
 par(mfcol=c(ceiling(k/split),split), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 for (i in 1:k) {
-  plot(date,Y[,i],type="l",xaxs="i",las=1,xlab="",ylab="",main=NAMES[i],tck=-0.02,col="grey20",ylim=c(min(Y),max(Y)))
+  plot(date,Y[,i],type="l",xaxs="i",las=1,xlab="",ylab="",main=NAMES[i],tck=-0.02,col="grey20",ylim=c(-5,5))
   grid(NA,NULL)
   lines(date,Y[,i], col="steelblue4")
   box()
@@ -35,6 +36,7 @@ for (i in 1:k) {
 
 summary_statistics = Moments(Y)
 print(summary_statistics)
+print(cor(Y))
 t = nrow(Y)
 
 ### Estimate DCC-GARCH(1,1) ----
@@ -48,7 +50,9 @@ dcc.test = DCCtest(Y, garchOrder=c(1,1), solver="solnp", n.lags=5)
 
 ### GENERALISED VOLATILITY FORECAST ERROR VARIANCE DECOMPOSITION
 nfore = 100
-dcc_gfevd = VGFEVD(dcc.fit, nfore)
+# there is a mistake in the paper. Standardized VIRF have been used in the combination with non-standardized connectedness measures
+# to replicate the paper the standardize argument in line 55 should be TRUE while in line 93 it should be false.
+dcc_gfevd = VGFEVD(dcc.fit, nfore, standardize=FALSE) 
 virf = dcc_gfevd$GVIRF
 
 split = 2
@@ -56,27 +60,30 @@ par(mfcol=c(ceiling(k/split),split), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1)+0.5,
 for (i in 1:k) {
   for (j in 1:k) {
     if (j==i) {
-      plot(virf[i,j,1,-1],type="l",xaxs="i",las=1,xlab="",ylab="",col="grey20",tck=-0.02,main=paste(NAMES[i]),yaxs="i",ylim=c(floor(min(virf[i,j,1,])),ceiling(max(virf[i,j,1,]))))
+      plot(virf[i,j,1,-1],type="l",xaxs="i",las=1,xlab="",ylab="",col="grey20",tck=-0.02,main=paste(NAMES[i]),yaxs="i",ylim=c(0,0.5))
       for (ij in 1:nfore) {
-        lines(virf[i,j,ij,-1],col="grey20")
+        lines(virf[i,j,ij,],col="grey20")
       }
+      grid(NA, NULL, lty=3)
       abline(h=0)
+      box()
     }
   }
 }
 
 kk = k*(k-1)/2
 split = 2
-par(mfcol=c(ceiling(kk/split),split), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1)+0.5, mgp=c(0.5,0.5,0))
+par(mfrow=c(ceiling(kk/split),split), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1)+0.5, mgp=c(0.5,0.5,0))
 for (i in 1:k) {
   for (j in 1:k) {
     if (j>i) { 
       plot(virf[i,j,1,-1],type="l",xaxs="i",las=1,xlab="",ylab="",col="grey20",tck=-0.02,
            main=paste(NAMES[i],"-",NAMES[j]),yaxs="i",
-           ylim=c(min(virf[i,j,1,-1]),max(virf[i,j,1,-1])))
+           ylim=c(0,0.3))
       for (ij in 1:nfore) {
-        lines(virf[i,j,ij,-1],col=paste0("grey",round((dim(virf)[4]-ij)/dim(virf)[4]*100)))
+        lines(virf[i,j,ij,],col=paste0("grey",round((dim(virf)[4]-ij)/dim(virf)[4]*100)))
       }
+      grid(NA, NULL, lty=3)
       abline(h=0)
       box()
     }
@@ -98,35 +105,32 @@ for (i in 1:t) {
 }
 
 ### DYNAMIC TOTAL CONNECTEDNESS
-par(mfcol=c(1,1), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
+par(mfcol=c(1,1), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 plot(date, total, type="l",xaxs="i",col="grey20", las=1, main="",ylab="",ylim=c(floor(min(total)),ceiling(max(total))),yaxs="i",xlab="",tck=-0.02)
 grid(NA,NULL)
 polygon(c(date,rev(date)),c(c(rep(0,t)),rev(total)),col="grey20", border="grey20")
 box()
 
 ### TOTAL DIRECTIONAL CONNECTEDNESS TO OTHERS
-split = 2
-par(mfcol=c(ceiling(k/split),split), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
+par(mfcol=c(k,3), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 for (i in 1:k){
-  plot(date,to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(0,ceiling(max(to))),tck=-0.02,yaxs="i")
+  plot(date,to[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"TO all others"),ylim=c(0,100),tck=-0.02,yaxs="i")
   grid(NA,NULL)
   polygon(c(date,rev(date)),c(c(rep(0,t)),rev(to[,i])),col="grey20", border="grey20")
   box()
 }
 
 ### TOTAL DIRECTIONAL CONNECTEDNESS FROM OTHERS
-par(mfcol=c(ceiling(k/split),split), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 for (i in 1:k){
-  plot(date,from[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"FROM all others"),ylim=c(0,ceiling(max(from))),tck=-0.02,yaxs="i")
+  plot(date,from[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste(colnames(Y)[i],"FROM all others"),ylim=c(0,100),tck=-0.02,yaxs="i")
   grid(NA,NULL)
   polygon(c(date,rev(date)),c(c(rep(0,t)),rev(from[,i])),col="grey20", border="grey20")
   box()
 }
 
 ### NET TOTAL DIRECTIONAL CONNECTEDNESS
-par(mfcol=c(ceiling(k/split),split), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 for (i in 1:k){
-  plot(date,net[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste("NET",colnames(Y)[i]),ylim=c(floor(min(net)),ceiling(max(net))),tck=-0.02,yaxs="i")
+  plot(date,net[,i], xlab="",ylab="",type="l",xaxs="i",col="grey20", las=1, main=paste("NET",colnames(Y)[i]),ylim=c(-60,60),tck=-0.02,yaxs="i")
   grid(NA,NULL)
   polygon(c(date,rev(date)),c(c(rep(0,t)),rev(net[,i])),col="grey20", border="grey20")
   box()
@@ -135,7 +139,7 @@ for (i in 1:k){
 ### NET PAIRWISE DIRECTIONAL CONNECTEDNESS
 kk = k*(k-1)/2
 lk = ceiling(sqrt(2))
-par(mfcol=c(ceiling(kk/lk),lk), oma=c(0.5,0.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
+par(mfcol=c(ceiling(kk/lk),lk), oma=c(0.5,1.5,0,0), mar=c(1.5,1,1.5,1), mgp=c(0.5,0.5,0))
 for (i in 1:k) {
   for (j in 1:k) {
     if (i<j) {
